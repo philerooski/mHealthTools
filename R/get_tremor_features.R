@@ -21,7 +21,7 @@ get_tremor_features <- function(
   funs = c(time_domain_summary, frequency_domain_summary, frequency_domain_energy),
   window_length = 256, time_range = c(1,9), 
   frequency_range = c(1, 25), overlap = 0.5) {
-  features = dplyr::tibble(Window = NA, error = NA)
+  features = dplyr::tibble(window = NA, error = NA)
   # check input integrity
   if (any(is.na(accelerometer_data))) {
     features$error = 'Malformed accelerometer data'
@@ -61,14 +61,14 @@ get_tremor_features <- function(
   # Combine all features
   features <- list(accelerometer = features_accel, gyroscope = features_gyro) %>%
     data.table::rbindlist(use.names = TRUE, fill = T, idcol = 'sensor') %>%
-    dplyr::mutate(Window = as.character(Window))
+    dplyr::mutate(window = as.character(window))
   if(is.na(gravity_data)) {
     features <- features %>%
       mutate(error = "None")
   } else {
     features <- features %>%
       dplyr::select(-error) %>% 
-      dplyr::left_join(gr_error, by = 'Window')
+      dplyr::left_join(gr_error, by = 'window')
   }
   
   return(features)

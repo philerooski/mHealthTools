@@ -86,7 +86,7 @@ gyroscope_features <- function(
   sampling_rate <- get_sampling_rate(sensor_data)
   # check input integrity
   if (is.na(sampling_rate)) {
-    return(dplyr::tibble(Window = "NA", error = "Could not calculate sampling rate."))
+    return(dplyr::tibble(window = "NA", error = "Could not calculate sampling rate."))
   }
   # preprocess and calculate jerk, velocity, displacement
   sensor_data <- sensor_data %>%
@@ -144,10 +144,10 @@ extract_features <- function(x, col, funs) {
   purrr::map(
     funs, ~ map_groups(
       x = x,
-      groups = c("axis", "Window"),
+      groups = c("axis", "window"),
       col = col,
       f = .)) %>%
-    purrr::reduce(left_join, by=c("axis", "Window")) %>%
+    purrr::reduce(left_join, by=c("axis", "window")) %>%
     dplyr::mutate(measurementType = col) %>%
-    dplyr::select(measurementType, axis, Window, everything())
+    dplyr::select(measurementType, axis, window, everything())
 }
