@@ -24,8 +24,8 @@ def network(input_var, label_var, shape):
     layer = DenseLayer(layer, num_units=1,nonlinearity=nn.nonlinearities.sigmoid)
     output = nn.layers.get_output(layer).flatten().clip(0.00001,0.99999)
     output_det = nn.layers.get_output(layer, deterministic=True).flatten().clip(0.00001,0.99999)
-    loss = nn.objectives.binary_crossentropy(output, label_var).mean() #, ss=ss)
-    te_loss = nn.objectives.binary_crossentropy(output_det, label_var).mean() #,ss=ss)
+    loss = nn.objectives.binary_crossentropy(output, label_var).mean()
+    te_loss = nn.objectives.binary_crossentropy(output_det, label_var).mean()
     te_acc = nn.objectives.binary_accuracy(output_det, label_var).mean()
 
     return layer

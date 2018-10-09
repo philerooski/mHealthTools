@@ -5,14 +5,14 @@
 #import cv2
 #import time
 
-#import theano
-#from theano import tensor as T
-#import lasagne
+import theano
+from theano import tensor as T
+import lasagne
 import synapseclient as sc
 import pandas as pd
 import numpy as np
 import pickle
-#import model
+import model
 
 
 def download_test_data(syn):
