@@ -28,5 +28,5 @@ def network(input_var, label_var, shape):
     te_loss = nn.objectives.binary_crossentropy(output_det, label_var).mean() #,ss=ss)
     te_acc = nn.objectives.binary_accuracy(output_det, label_var).mean()
 
-    return layer, loss, te_loss, te_acc
+    return layer
 
