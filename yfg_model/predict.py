@@ -1,27 +1,24 @@
-#!/usr/bin/env python
-#import os
-#import sys
-#import logging
-#import cv2
-#import time
-
 import theano
-from theano import tensor as T
 import lasagne
 import synapseclient as sc
 import pandas as pd
 import numpy as np
 import pickle
 import model
+import os
 
 
 def download_test_data(syn):
-    q = syn.tableQuery("select recordId, 'deviceMotion_walking_rest.json.items' "
-                       "from syn10733842 limit 100")
-    paths =  syn.downloadTableColumns(q, "deviceMotion_walking_rest.json.items")
+    q = syn.tableQuery(
+            "select healthCode, recordId, 'deviceMotion_walking_outbound.json.items', "
+            "'deviceMotion_walking_rest.json.items' from syn10733842 limit 10")
+    outbound_paths = syn.downloadTableColumns(q, "deviceMotion_walking_outbound.json.items")
+    rest_paths = syn.downloadTableColumns(q, "deviceMotion_walking_rest.json.items")
     test_table = q.asDataFrame()
-    test_table['path'] = test_table[
-            "deviceMotion_walking_rest.json.items"].astype(str).map(paths)
+    test_table['outbound_path'] = test_table[
+            "deviceMotion_walking_outbound.json.items"].astype(str).map(outbound_paths)
+    test_table['rest_path'] = test_table[
+            "deviceMotion_walking_rest.json.items"].astype(str).map(rest_paths)
     return test_table
 
 
@@ -37,41 +34,61 @@ def data_reader(p):
     return padded_data
 
 
-def get_weights():
+def get_weights(weights_path):
     weights = []
     for i in range(1, 11):
-        with open("weights/fold{}_params_50".format(i), 'rb') as f:
+        with open(os.path.join(weights_path,
+                  "fold{}_params_50".format(i)), 'rb') as f:
             w = pickle.load(f, encoding='latin1')
             weights.append(w)
     return weights
 
 
-def predict(test_data):
-    all_predictions = []
-    weights = get_weights()
-    for w in weights:
-        model_predictions = {}
+def predict(test_data, weights_path, input_col_name):
+    prediction_cols = ['healthCode', 'recordId', 'weights', 'value']
+    all_predictions = pd.DataFrame(columns = prediction_cols)
+    weights = get_weights(weights_path)
+    for weight_index in range(len(weights)):
+        w = weights[weight_index]
+        model_predictions = []
+        input_var = theano.tensor.tensor3('input')
         net = model.network(
-                input_var = T.tensor3('input'),
-                label_var = T.ivector('label'),
+                input_var = input_var,
+                label_var = theano.tensor.ivector('label'),
                 shape = (1,3,4000))
-        lasagne.layers.set_all_param_values(net, params)
+        lasagne.layers.set_all_param_values(net, w)
         output_var = lasagne.layers.get_output(net, deterministic=True)
         pred = theano.function([input_var], output_var)
-        for i, r in data.iterrows():
-            recordId, path = r
+        for i, r in test_data.iterrows():
+            healthCode, recordId, path = \
+                    r['healthCode'], r['recordId'], r[input_col_name]
             data = data_reader(path)
-            prediction = pred(np.array([data], dtype='float32'))
-            model_predictions[recordId] = prediction
-        all_predictions.append(model_predictions)
+            prediction = pred(np.array([data.values.T], dtype='float32'))
+            model_predictions.append(
+                [healthCode, recordId, weight_index, prediction[0][0]])
+        model_predictions = pd.DataFrame(
+                model_predictions, columns = prediction_cols)
+        all_predictions = all_predictions.append(
+                model_predictions, ignore_index = True)
     return all_predictions
+
+
+def bind_predictions(outbound_predictions, rest_predictions):
+    outbound_predictions['assay'] = "outbound"
+    rest_predictions['assay'] = "rest"
+    all_predictions = outbound_predictions.append(
+            rest_predictions, ignore_index = True)
+    return(all_predictions)
 
 
 def main():
     syn = sc.login()
     test_data = download_test_data(syn)
-    predictions = predict(test_data)
-
+    outbound_predictions = predict(test_data, "weights/outbound/", "outbound_path")
+    rest_predictions = predict(test_data, "weights/rest/", "rest_path")
+    all_predictions = bind_predictions(outbound_predictions, rest_predictions)
+    print(all_predictions.head())
+    print(all_predictions.shape)
 
 if __name__ == "__main__":
     main()
