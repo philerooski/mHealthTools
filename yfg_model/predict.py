@@ -1,6 +1,7 @@
 import theano
 import lasagne
 import synapseclient as sc
+import multiprocessing as mp
 import pandas as pd
 import numpy as np
 import pickle
@@ -43,33 +44,44 @@ def get_weights(weights_path):
             weights.append(w)
     return weights
 
+# obj should be a dict with keys:
+#   weights
+#   test_data
+#   input_col_name
+def predict_using_weights(obj):
+    w, test_data, input_col_name = \
+            obj['weights'], obj['test_data'], obj['input_col_name']
+    prediction_cols = ['healthCode', 'recordId', 'value']
+    model_predictions = []
+    input_var = theano.tensor.tensor3('input')
+    net = model.network(
+            input_var = input_var,
+            label_var = theano.tensor.ivector('label'),
+            shape = (1,3,4000))
+    lasagne.layers.set_all_param_values(net, w)
+    output_var = lasagne.layers.get_output(net, deterministic=True)
+    pred = theano.function([input_var], output_var)
+    for i, r in test_data.iterrows():
+        healthCode, recordId, path = \
+                r['healthCode'], r['recordId'], r[input_col_name]
+        data = data_reader(path)
+        prediction = pred(np.array([data.values.T], dtype='float32'))
+        model_predictions.append(
+            [healthCode, recordId, prediction[0][0]])
+    model_predictions = pd.DataFrame(
+            model_predictions, columns = prediction_cols)
+    return(model_predictions)
+
 
 def predict(test_data, weights_path, input_col_name):
-    prediction_cols = ['healthCode', 'recordId', 'weights', 'value']
-    all_predictions = pd.DataFrame(columns = prediction_cols)
     weights = get_weights(weights_path)
-    for weight_index in range(len(weights)):
-        w = weights[weight_index]
-        model_predictions = []
-        input_var = theano.tensor.tensor3('input')
-        net = model.network(
-                input_var = input_var,
-                label_var = theano.tensor.ivector('label'),
-                shape = (1,3,4000))
-        lasagne.layers.set_all_param_values(net, w)
-        output_var = lasagne.layers.get_output(net, deterministic=True)
-        pred = theano.function([input_var], output_var)
-        for i, r in test_data.iterrows():
-            healthCode, recordId, path = \
-                    r['healthCode'], r['recordId'], r[input_col_name]
-            data = data_reader(path)
-            prediction = pred(np.array([data.values.T], dtype='float32'))
-            model_predictions.append(
-                [healthCode, recordId, weight_index, prediction[0][0]])
-        model_predictions = pd.DataFrame(
-                model_predictions, columns = prediction_cols)
-        all_predictions = all_predictions.append(
-                model_predictions, ignore_index = True)
+    pool_objects = [{'weights': w, 'test_data': test_data,
+        'input_col_name': input_col_name} for w in weights]
+    p = mp.Pool(10)
+    all_predictions = p.map(predict_using_weights, pool_objects)
+    for i in range(len(all_predictions)):
+        all_predictions[i]['weight_set'] = i + 1
+    all_predictions = pd.concat(all_predictions)
     return all_predictions
 
 
