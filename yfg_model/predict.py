@@ -11,7 +11,7 @@ import os
 def download_test_data(syn):
     q = syn.tableQuery(
             "select healthCode, recordId, 'deviceMotion_walking_outbound.json.items', "
-            "'deviceMotion_walking_rest.json.items' from syn10733842 limit 10")
+            "'deviceMotion_walking_rest.json.items' from syn10733842")
     outbound_paths = syn.downloadTableColumns(q, "deviceMotion_walking_outbound.json.items")
     rest_paths = syn.downloadTableColumns(q, "deviceMotion_walking_rest.json.items")
     test_table = q.asDataFrame()
@@ -87,8 +87,7 @@ def main():
     outbound_predictions = predict(test_data, "weights/outbound/", "outbound_path")
     rest_predictions = predict(test_data, "weights/rest/", "rest_path")
     all_predictions = bind_predictions(outbound_predictions, rest_predictions)
-    print(all_predictions.head())
-    print(all_predictions.shape)
+
 
 if __name__ == "__main__":
     main()
