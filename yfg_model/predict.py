@@ -16,7 +16,10 @@ def download_test_data(syn):
     outbound_paths = syn.downloadTableColumns(q, "deviceMotion_walking_outbound.json.items")
     rest_paths = syn.downloadTableColumns(q, "deviceMotion_walking_rest.json.items")
     test_table = q.asDataFrame()
-    test_table = test_table.dropna() # only predict where both outbound and rest exist
+    test_table = test_table.groupby("healthCode")
+    test_table = test_table.filter(
+            lambda r : pd.notnull(r['deviceMotion_walking_outbound.json.items']).all() and \
+                       pd.notnull(r['deviceMotion_walking_rest.json.items']).all())
     test_table['outbound_path'] = test_table[
             "deviceMotion_walking_outbound.json.items"].astype(
                     int).astype(str).map(outbound_paths)
