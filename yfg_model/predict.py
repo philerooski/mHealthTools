@@ -105,6 +105,9 @@ def main():
     outbound_predictions = predict(test_data, "weights/outbound/", "outbound_path")
     rest_predictions = predict(test_data, "weights/rest/", "rest_path")
     all_predictions = bind_predictions(outbound_predictions, rest_predictions)
+    all_predictions = all_predictions[
+            ["healthCode", "recordId", "assay", "weight_set", "value"]]
+    all_predictions.to_csv("yfg_predictions.csv", index=False)
 
 
 if __name__ == "__main__":
