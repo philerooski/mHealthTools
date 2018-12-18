@@ -33,9 +33,11 @@ make_comparison <- function(predictions, sub) {
     distinct()
 }
 
-syn <- synLogin()
-predictions <- read_syn_csv(PREDICTIONS_SYN_ID)
-predictions <- prep_predictions(predictions)
-yfg_submission <- read_syn_csv(YFG_SUBMISSION_SYN_ID)
-yfg_submission <- clean_yfg_submission(yfg_submission)
-comparison <- make_comparison(predictions, yfg_submission)
+main <- function() {
+  syn <- synLogin()
+  predictions <- read_syn_csv(PREDICTIONS_SYN_ID)
+  predictions <- prep_predictions(predictions)
+  yfg_submission <- read_syn_csv(YFG_SUBMISSION_SYN_ID)
+  yfg_submission <- clean_yfg_submission(yfg_submission)
+  comparison <- make_comparison(predictions, yfg_submission)
+}
