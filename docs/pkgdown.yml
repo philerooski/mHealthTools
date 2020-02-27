@@ -1,0 +1,9 @@
+pandoc: 2.3.1
+pkgdown: 1.4.1
+pkgdown_sha: ~
+articles:
+  extending: extending.html
+  feature_definitions: feature_definitions.html
+  modules: modules.html
+  sensors: sensors.html
+
