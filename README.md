@@ -40,7 +40,7 @@ See the `seewave` [installation page](http://rug.mnhn.fr/seewave/inst.html) for 
 
 ### Usage
 
-![Modules diagram](paper/figure_one.png)
+![Modules diagram](/paper/figure_one.png)
 
 There are two broad types of modules included with mhealthtools: activity-level and sensor-level modules.
 
